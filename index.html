@@ -274,6 +274,7 @@
             if (menu.title in Order.orders) {
                 Order.orders[menu.title].count += 1
                 Order.orders[menu.title].dom.querySelector(".amount").innerText = Order.orders[menu.title].count
+                Order.refresh()
             } else
                 tbody.appendChild(new Order(menu, 1).createElement())
 
