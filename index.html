@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="UTF-8">
+<meta name="viewport" content="initial-scale=1.0,maximum-scale=1.0,minimum-scale=1.0,user-scalable=no" />
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<script src="http://code.jquery.com/jquery-1.7.1.min.js"></script>
+
+<title>POS</title>
+
+<style>
+    html,
+    body {
+        margin: 0;
+        padding: 6px;
+        background-color: black;
+        color: white;
+        font-family: -apple-system, BlinkMacSystemFont, AppleSDGothicNeo, sans-serif;
+        font-size: 14px;
+        overscroll-behavior-y: none;
+
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none
+    }
+
+    .row {
+        display: flex;
+    }
+
+    .column {
+        flex: 50%;
+    }
+
+    .block {
+        padding: 12px;
+        margin-bottom: 12px;
+        border-radius: 10px;
+        background-color: #161618;
+    }
+
+    #menus {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        grid-auto-rows: 80px;
+        gap: 10px;
+    }
+
+    .menu {
+        position: relative;
+        padding: 10px;
+        border-radius: 10px;
+        background-color: #212124;
+    }
+
+    .menu-price {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+    }
+
+    #purchase-table,
+    #purchase-header-table,
+    #purchase-footer-table {
+        width: 100%;
+    }
+
+    #purchase-table,
+    #purchase-header-table,
+    #purchase-footer-table,
+    #purchase-header-table thead th,
+    #purchase-footer-table tfoot th,
+    #purchase-footer-table tfoot td,
+    #purchase-table tbody th,
+    #purchase-table tbody td {
+        border: 2px solid #161618;
+        border-collapse: collapse;
+    }
+
+    #purchase-header-table thead,
+    #purchase-footer-table tfoot {
+        background-color: #212124;
+    }
+
+    #purchase-table td {
+        padding: 8px;
+    }
+
+    #purchase-table tr:hover {
+        background-color: #212124;
+    }
+
+
+    .scrollable {
+        height: calc(100% - 85px);
+        overflow-y: scroll;
+    }
+
+    .scrollable::-webkit-scrollbar {
+        display: none;
+    }
+
+    .menu-title {
+        word-break: keep-all;
+    }
+
+    .btn {
+        background-color: #212124;
+        color: white;
+        border: 0;
+        height: 48px;
+        width: 100px;
+        border-radius: 10px;
+    }
+</style>
+<script src="./long-press-event.js"></script>
+<script>
+    const Menus = {
+
+    }
+
+    const Orders = {
+
+    }
+
+    class Menu {
+        constructor(title, price) {
+            this.title = title
+            this.price = price
+        }
+
+        createElement() {
+            let element = document.createElement("div")
+            element.className = "menu"
+            element.innerHTML = `
+                    <div class="menu-title">${this.title.replace("\n", "<br>")}</div>
+                    <div class="menu-price">${(this.price + "").replace("\n", "<br>")}</div>`
+
+
+            let menu = this
+            element.addEventListener('long-press', function (e) {
+                let title = prompt("상품명", element.querySelector(".menu-title").innerText)
+                let price = prompt("가격", element.querySelector(".menu-price").innerText)
+
+                element.querySelector(".menu-title").innerText = title
+                element.querySelector(".menu-price").innerText = price
+
+                menu.title = title
+                menu.price = price
+            })
+
+
+            element.addEventListener("click", function (e) {
+                Orders.add(menu)
+            })
+
+            return element
+        }
+    }
+
+    class Order {
+        static orders = {}
+
+        /**
+         * @param {Menu} menu 
+         */
+        constructor(menu, amount) {
+            this.menu = menu
+
+            /**
+             * @type {number}
+             */
+            this.amount = amount
+        }
+
+        createElement() {
+            let tr = document.createElement("tr")
+            tr.innerHTML = `
+                    <th>${Object.keys(Order.orders).length + 1}</th>
+                    <td>${this.menu.title}</td>
+                    <td style="text-align: right;">${this.menu.price}</td>
+                    <td class="amount" style="text-align: center;">${this.amount}</td>
+                    <td style="text-align: right;">${this.menu.price * this.amount}</td>`
+
+            if (!(this.menu.title in Order.orders)) {
+                Order.orders[this.menu.title] = { count: 1, dom: tr, menu: this.menu }
+                console.log(Order.orders)
+            }
+
+            tr.onclick = () => {
+                let selectedOrderDom = document.querySelector("#selected-order")
+                selectedOrderDom.dataset.title = this.menu.title
+                selectedOrderDom.innerHTML = this.menu.title.replace("\n", "<br>")
+            }
+            return tr
+        }
+
+        static clear() {
+            Order.orders = {}
+            document.querySelector("#purchase-table tbody").innerHTML = ""
+            document.querySelector("#total-price").innerText = Order.calculate()
+            let selectedOrderDom = document.querySelector("#selected-order")
+            selectedOrderDom.dataset.title = ""
+            selectedOrderDom.innerHTML = ""
+        }
+
+        static refresh() {
+            let tbody = document.querySelector("#purchase-table tbody")
+            tbody.innerHTML = ""
+
+            let number = 1;
+            for (let title in Order.orders) {
+                let menu = Order.orders[title].menu
+                let count = Order.orders[title].count
+
+
+                let tr = document.createElement("tr")
+                tr.innerHTML = `
+                    <th>${number}</th>
+                    <td>${menu.title}</td>
+                    <td style="text-align: right;">${menu.price}</td>
+                    <td class="amount" style="text-align: center;">${count}</td>
+                    <td style="text-align: right;">${menu.price * count}</td>`
+                tr.onclick = () => {
+                    let selectedOrderDom = document.querySelector("#selected-order")
+                    selectedOrderDom.dataset.title = menu.title
+                    selectedOrderDom.innerHTML = menu.title.replace("\n", "<br>")
+                }
+
+                Order.orders[title].dom = tr
+                tbody.appendChild(tr)
+                number += 1
+            }
+            document.querySelector("#total-price").innerText = Order.calculate()
+        }
+
+        static calculate() {
+            let sum = 0
+            for (let title in Order.orders)
+                sum += Order.orders[title].menu.price * Order.orders[title].count
+            return sum
+        }
+    }
+
+    function cancelSelctedOrder() {
+        let selectedOrderDom = document.querySelector("#selected-order")
+        let selectedOrderTitle = selectedOrderDom.dataset.title
+        delete Order.orders[selectedOrderTitle]
+        Order.refresh()
+        selectedOrderDom.dataset.title = ""
+        selectedOrderDom.innerText = ""
+    }
+
+    function changeAmount() {
+        let selectedOrderDom = document.querySelector("#selected-order")
+        let selectedOrderTitle = selectedOrderDom.dataset.title
+        if (!(selectedOrderTitle in Order.orders)) return
+        let afterAmount = parseInt(prompt("수량", Order.orders[selectedOrderTitle].count))
+        if (isNaN(afterAmount)) return
+        Order.orders[selectedOrderTitle].count = afterAmount
+        Order.refresh()
+    }
+
+    window.onload = () => {
+        let tbody = document.querySelector("#purchase-table tbody")
+
+        let menus = document.querySelector("#menus")
+        Orders.add = menu => {
+            if (!menu.title) return
+
+            if (menu.title in Order.orders) {
+                Order.orders[menu.title].count += 1
+                Order.orders[menu.title].dom.querySelector(".amount").innerText = Order.orders[menu.title].count
+            } else
+                tbody.appendChild(new Order(menu, 1).createElement())
+
+            document.querySelector("#total-price").innerText = Order.calculate()
+        }
+
+        menus.appendChild(new Menu("조각스티커\n미즈키", 3000).createElement())
+        menus.appendChild(new Menu("조각스티커\n에나", 3000).createElement())
+        menus.appendChild(new Menu("조각스티커\n카나데", 3000).createElement())
+        menus.appendChild(new Menu("조각스티커\n마후유", 3000).createElement())
+
+        menus.appendChild(new Menu("일상스티커\n미즈에나", 2000).createElement())
+        menus.appendChild(new Menu("조각스티커\n카나마유", 2000).createElement())
+
+        menus.appendChild(new Menu("엽서 1 카나데", 1000).createElement())
+        menus.appendChild(new Menu("엽서 2 마후유", 1000).createElement())
+        menus.appendChild(new Menu("엽서 3 카나데", 1000).createElement())
+        menus.appendChild(new Menu("엽서 4 에나", 1000).createElement())
+        menus.appendChild(new Menu("엽서 5 미즈키", 1000).createElement())
+        menus.appendChild(new Menu("엽서 6 에나", 1000).createElement())
+        menus.appendChild(new Menu("엽서 7 카나데", 1000).createElement())
+        menus.appendChild(new Menu("엽서 8 마후유", 1000).createElement())
+        menus.appendChild(new Menu("엽서 9 미즈키", 1000).createElement())
+
+        menus.appendChild(new Menu("니고 포토카드 세트", 5000).createElement())
+        menus.appendChild(new Menu("니고 조각스티커 세트", 3000).createElement())
+        menus.appendChild(new Menu("니고 칼선스티커", 2000).createElement())
+
+        menus.appendChild(new Menu("", "").createElement())
+        menus.appendChild(new Menu("", "").createElement())
+
+        menus.appendChild(new Menu("니고 코롯토\n에나", 7000).createElement())
+        menus.appendChild(new Menu("니고 코롯토\n미즈키", 7000).createElement())
+        menus.appendChild(new Menu("니고 코롯토\n마후유", 7000).createElement())
+        menus.appendChild(new Menu("니고 코롯토\n카나데", 7000).createElement())
+
+        menus.appendChild(new Menu("에나 홀로그램 아크릴스탠드", 18000).createElement())
+
+    }
+</script>
+</head>
+
+<body>
+    <div class="row">
+        <div class="column" style="margin-right: 6px;">
+            <div class="block" style="height: 60vh">
+                <h2 style="margin: 0; margin-bottom: 10px">주문 내역</h2>
+
+                <table id="purchase-header-table">
+                    <colgroup>
+                        <col style="width: 10%;" />
+                        <col style="width: 40%;" />
+                        <col style="width: 15%;" />
+                        <col style="width: 7.5%;" />
+                        <col style="width: 15%;" />
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">메뉴명</th>
+                            <th scope="col">단가</th>
+                            <th scope="col">수량</th>
+                            <th scope="col">금액</th>
+                        </tr>
+                    </thead>
+                </table>
+                <div class="scrollable">
+                    <table id="purchase-table">
+                        <colgroup>
+                            <col style="width: 10%;" />
+                            <col style="width: 40%;" />
+                            <col style="width: 15%;" />
+                            <col style="width: 7.5%;" />
+                            <col style="width: 15%;" />
+                        </colgroup>
+                        <tbody>
+
+                        </tbody>
+                    </table>
+                </div>
+                <table id="purchase-footer-table">
+                    <colgroup>
+                        <col style="width: 10%;" />
+                        <col style="width: 40%;" />
+                        <col style="width: 15%;" />
+                        <col style="width: 7.5%;" />
+                        <col style="width: 15%;" />
+                    </colgroup>
+                    <tfoot>
+                        <tr>
+                            <th scope="row">총계</th>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td id="total-price" style="text-align: right;">0</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <div class="block" style="height: calc(40vh - 100px); position:relative;">
+                <h2 style="margin: 0; margin-bottom: 10px;">주문 수정</h2>
+                <h3 style="margin: 0; margin-bottom: 10px;">메뉴명</h3>
+                <div id="selected-order" data-title=""></div>
+                <br>
+                <div style="position:absolute; bottom: 12px;">
+                    <button class="btn" style="font-size: 18px; margin-right: 10px;" onclick="changeAmount()">수량
+                        변경</button>
+                    <button class="btn" style="font-size: 18px; margin-right: 10px;" onclick="cancelSelctedOrder()">주문
+                        취소</button>
+                    <button class="btn" style="font-size: 18px;" onclick="Order.clear()">일괄 취소</button>
+                </div>
+            </div>
+        </div>
+        <div class="column" style="margin-left: 6px;">
+            <div class="block">
+                <div id="menus">
+
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
