@@ -115,6 +115,18 @@
         width: 100px;
         border-radius: 10px;
     }
+
+    #menus-column-block {
+        height: calc(100vh - 64px);
+    }
+    
+    #menus-scrollabler {
+        border-radius: 10px;
+    }
+    
+    #menus-scrollabler::-webkit-scrollbar {
+        display: none;
+    }
 </style>
 <script src="./long-press-event.js"></script>
 <script>
@@ -389,10 +401,13 @@
             </div>
         </div>
         <div class="column" style="margin-left: 6px;">
-            <div class="block">
-                <div id="menus">
+            <div class="block" id="menus-column-block">
+                <div id="menus-scrollabler" style="height: calc(100vh - 64px); overflow-y: scroll;">
+                    <div id="menus">
 
+                    </div>
                 </div>
+                
             </div>
         </div>
     </div>
