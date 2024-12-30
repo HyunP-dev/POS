@@ -36,11 +36,24 @@ body {
     gap: 10px;
 }
 
-.menu {
+.menu, .menu-adder {
     position: relative;
     padding: 10px;
     border-radius: 10px;
     background-color: #212124;
+}
+
+.menu-adder {
+    text-align: center;
+    
+}
+
+.menu-adder > * {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 60px;
 }
 
 .menu-price {
@@ -114,3 +127,4 @@ body {
 #menus-scrollabler::-webkit-scrollbar {
     display: none;
 }
+

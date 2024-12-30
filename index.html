@@ -207,6 +207,12 @@
 
         menus.appendChild(new Menu("에나 홀로그램 아크릴스탠드", 18000).createElement())
 
+        let menuAdderDom = document.querySelector(".menu-adder")
+        menus.appendChild(menuAdderDom)
+        menuAdderDom.onclick = () => {
+            menus.appendChild(new Menu("", 0).createElement())
+            menus.appendChild(menuAdderDom)
+        }
     }
 </script>
 </head>
@@ -286,7 +292,7 @@
             <div class="block" id="menus-column-block">
                 <div id="menus-scrollabler" style="height: calc(100vh - 64px); overflow-y: scroll;">
                     <div id="menus">
-
+                        <div class="menu-adder"><div>+</div></div>
                     </div>
                 </div>
                 
